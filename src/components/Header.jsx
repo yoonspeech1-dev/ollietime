@@ -6,7 +6,7 @@ function Header() {
     <header className="header">
       <div className="header-container">
         <div className="logo">
-          <span className="logo-icon">올</span>
+          <span className="logo-icon">O</span>
           <div className="logo-text">
             <span className="logo-title">올리타임</span>
             <span className="logo-subtitle">윤스피치</span>
