@@ -6,7 +6,12 @@ function Header() {
     <header className="header">
       <div className="header-container">
         <div className="logo">
-          <img src={`${import.meta.env.BASE_URL}ollie-avatar.png`} alt="올리" className="logo-icon" />
+          <div className="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          </div>
           <div className="logo-text">
             <span className="logo-title">올리타임</span>
             <span className="logo-subtitle">윤스피치</span>
