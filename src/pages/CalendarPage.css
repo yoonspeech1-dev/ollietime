@@ -3,7 +3,11 @@
 }
 
 .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
 .page-title {
@@ -29,12 +33,46 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .page-header {
+    margin-bottom: 1rem;
+  }
+
   .page-title {
     font-size: 1.25rem;
   }
 
   .page-description {
     font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-header {
+    flex-direction: column;
+    gap: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .page-title {
+    font-size: 1.125rem;
+  }
+
+  .page-description {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (max-width: 375px) {
+  .page-header {
+    margin-bottom: 0.5rem;
+  }
+
+  .page-title {
+    font-size: 1rem;
+  }
+
+  .page-description {
+    font-size: 0.75rem;
   }
 }
