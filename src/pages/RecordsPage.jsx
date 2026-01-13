@@ -6,21 +6,25 @@ function RecordsPage() {
   const [records, setRecords] = useState([])
   const [editingDate, setEditingDate] = useState(null)
   const [editForm, setEditForm] = useState({ startTime: '', endTime: '' })
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     loadRecords()
   }, [])
 
-  const loadRecords = () => {
-    const data = getRecords()
-    const sorted = data.sort((a, b) => new Date(b.date) - new Date(a.date))
-    setRecords(sorted)
+  const loadRecords = async () => {
+    setLoading(true)
+    const data = await getRecords()
+    setRecords(data)
+    setLoading(false)
   }
 
-  const handleDelete = (date) => {
+  const handleDelete = async (date) => {
     if (window.confirm('정말 삭제하시겠습니까?')) {
-      deleteRecord(date)
-      loadRecords()
+      const updated = await deleteRecord(date)
+      if (updated) {
+        setRecords(updated)
+      }
     }
   }
 
@@ -32,10 +36,12 @@ function RecordsPage() {
     })
   }
 
-  const handleSaveEdit = () => {
-    updateRecord(editingDate, editForm)
+  const handleSaveEdit = async () => {
+    const updated = await updateRecord(editingDate, editForm)
+    if (updated) {
+      setRecords(updated)
+    }
     setEditingDate(null)
-    loadRecords()
   }
 
   const handleCancelEdit = () => {
@@ -67,6 +73,16 @@ function RecordsPage() {
   }
 
   const totalWork = getTotalWorkTime()
+
+  if (loading) {
+    return (
+      <div className="records-page">
+        <div className="loading-state">
+          <p>로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="records-page">

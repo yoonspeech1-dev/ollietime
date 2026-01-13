@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { getRecords, getRecordByDate, saveRecord, getCurrentTimeKST, formatDate } from '../utils/storage'
 import './Calendar.css'
 
@@ -10,16 +10,27 @@ function Calendar() {
   const [selectedDate, setSelectedDate] = useState(null)
   const [records, setRecords] = useState([])
   const [selectedRecord, setSelectedRecord] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    setRecords(getRecords())
+  const loadRecords = useCallback(async () => {
+    setLoading(true)
+    const data = await getRecords()
+    setRecords(data)
+    setLoading(false)
   }, [])
 
   useEffect(() => {
-    if (selectedDate) {
-      const record = getRecordByDate(selectedDate)
-      setSelectedRecord(record || null)
+    loadRecords()
+  }, [loadRecords])
+
+  useEffect(() => {
+    const loadSelectedRecord = async () => {
+      if (selectedDate) {
+        const record = await getRecordByDate(selectedDate)
+        setSelectedRecord(record || null)
+      }
     }
+    loadSelectedRecord()
   }, [selectedDate, records])
 
   const getDaysInMonth = (date) => {
@@ -67,26 +78,30 @@ function Calendar() {
     setSelectedDate(formatDate(date))
   }
 
-  const handleStartWork = () => {
+  const handleStartWork = async () => {
     if (!selectedDate) return
     const time = getCurrentTimeKST()
-    const updatedRecords = saveRecord({
+    const updatedRecords = await saveRecord({
       date: selectedDate,
       startTime: time,
       endTime: selectedRecord?.endTime || null
     })
-    setRecords(updatedRecords)
+    if (updatedRecords) {
+      setRecords(updatedRecords)
+    }
   }
 
-  const handleEndWork = () => {
+  const handleEndWork = async () => {
     if (!selectedDate) return
     const time = getCurrentTimeKST()
-    const updatedRecords = saveRecord({
+    const updatedRecords = await saveRecord({
       date: selectedDate,
       startTime: selectedRecord?.startTime || null,
       endTime: time
     })
-    setRecords(updatedRecords)
+    if (updatedRecords) {
+      setRecords(updatedRecords)
+    }
   }
 
   const hasRecord = (dateStr) => {
@@ -99,6 +114,16 @@ function Calendar() {
   }
 
   const days = getDaysInMonth(currentDate)
+
+  if (loading) {
+    return (
+      <div className="calendar-container">
+        <div className="calendar loading-state">
+          <p>로딩 중...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="calendar-container">
