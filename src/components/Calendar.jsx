@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { getRecords, getRecordByDate, saveRecord, getCurrentTimeKST, formatDate } from '../utils/storage'
+import { getRecords, getRecordByDate, saveRecord, getCurrentTimeKST, formatDate, calculateWorkHours } from '../utils/storage'
 import './Calendar.css'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -84,7 +84,8 @@ function Calendar() {
     const updatedRecords = await saveRecord({
       date: selectedDate,
       startTime: time,
-      endTime: selectedRecord?.endTime || null
+      endTime: null,
+      pauseIntervals: []
     })
     if (updatedRecords) {
       setRecords(updatedRecords)
@@ -92,17 +93,74 @@ function Calendar() {
   }
 
   const handleEndWork = async () => {
-    if (!selectedDate) return
+    if (!selectedDate || !selectedRecord?.startTime) return
     const time = getCurrentTimeKST()
+
+    // 현재 일시중지 중이면 종료 시 자동으로 재개 처리
+    let pauseIntervals = selectedRecord?.pauseIntervals || []
+    if (isPaused) {
+      pauseIntervals = pauseIntervals.map((interval, idx) =>
+        idx === pauseIntervals.length - 1 && !interval.resumeTime
+          ? { ...interval, resumeTime: time }
+          : interval
+      )
+    }
+
     const updatedRecords = await saveRecord({
       date: selectedDate,
-      startTime: selectedRecord?.startTime || null,
-      endTime: time
+      startTime: selectedRecord.startTime,
+      endTime: time,
+      pauseIntervals
     })
     if (updatedRecords) {
       setRecords(updatedRecords)
     }
   }
+
+  const handlePauseWork = async () => {
+    if (!selectedDate || !selectedRecord?.startTime || selectedRecord?.endTime) return
+    const time = getCurrentTimeKST()
+    const pauseIntervals = [...(selectedRecord?.pauseIntervals || []), { pauseTime: time, resumeTime: null }]
+
+    const updatedRecords = await saveRecord({
+      date: selectedDate,
+      startTime: selectedRecord.startTime,
+      endTime: null,
+      pauseIntervals
+    })
+    if (updatedRecords) {
+      setRecords(updatedRecords)
+    }
+  }
+
+  const handleResumeWork = async () => {
+    if (!selectedDate || !selectedRecord?.startTime) return
+    const time = getCurrentTimeKST()
+
+    const pauseIntervals = (selectedRecord?.pauseIntervals || []).map((interval, idx) =>
+      idx === selectedRecord.pauseIntervals.length - 1 && !interval.resumeTime
+        ? { ...interval, resumeTime: time }
+        : interval
+    )
+
+    const updatedRecords = await saveRecord({
+      date: selectedDate,
+      startTime: selectedRecord.startTime,
+      endTime: null,
+      pauseIntervals
+    })
+    if (updatedRecords) {
+      setRecords(updatedRecords)
+    }
+  }
+
+  // 현재 일시중지 상태인지 확인
+  const isPaused = selectedRecord?.pauseIntervals?.length > 0 &&
+    !selectedRecord.pauseIntervals[selectedRecord.pauseIntervals.length - 1].resumeTime
+
+  // 근무 상태 확인
+  const isWorking = selectedRecord?.startTime && !selectedRecord?.endTime
+  const isWorkEnded = selectedRecord?.startTime && selectedRecord?.endTime
 
   const hasRecord = (dateStr) => {
     return records.some(r => r.date === dateStr)
@@ -197,15 +255,50 @@ function Calendar() {
                     <span className="record-label">근무 종료</span>
                     <span className="record-value">{selectedRecord.endTime || '-'}</span>
                   </div>
+                  {selectedRecord.pauseIntervals && selectedRecord.pauseIntervals.length > 0 && (
+                    <div className="pause-info">
+                      <span className="record-label">일시중지 기록</span>
+                      <div className="pause-list">
+                        {selectedRecord.pauseIntervals.map((interval, idx) => (
+                          <div key={idx} className="pause-item">
+                            {interval.pauseTime} ~ {interval.resumeTime || '(진행중)'}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selectedRecord.endTime && (
+                    <div className="record-item work-duration">
+                      <span className="record-label">실제 근무시간</span>
+                      <span className="record-value">
+                        {(() => {
+                          const workHours = calculateWorkHours(
+                            selectedRecord.startTime,
+                            selectedRecord.endTime,
+                            selectedRecord.pauseIntervals
+                          )
+                          return workHours
+                            ? `${workHours.hours}시간 ${workHours.minutes}분`
+                            : '-'
+                        })()}
+                      </span>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="no-record">근무 기록이 없습니다</p>
               )}
             </div>
-            <div className="action-buttons">
+            {isPaused && (
+              <div className="pause-status">
+                <span className="pause-badge">일시중지 중</span>
+              </div>
+            )}
+            <div className="action-buttons three-buttons">
               <button
                 className="action-btn start-btn"
                 onClick={handleStartWork}
+                disabled={isWorking || isWorkEnded}
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
@@ -214,8 +307,31 @@ function Calendar() {
                 근무 시작
               </button>
               <button
+                className={`action-btn pause-btn ${isPaused ? 'resume' : ''}`}
+                onClick={isPaused ? handleResumeWork : handlePauseWork}
+                disabled={!isWorking}
+              >
+                {isPaused ? (
+                  <>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polygon points="5 3 19 12 5 21 5 3" />
+                    </svg>
+                    근무 재개
+                  </>
+                ) : (
+                  <>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                      <rect x="6" y="4" width="4" height="16" />
+                      <rect x="14" y="4" width="4" height="16" />
+                    </svg>
+                    일시중지
+                  </>
+                )}
+              </button>
+              <button
                 className="action-btn end-btn"
                 onClick={handleEndWork}
+                disabled={!isWorking}
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />

@@ -56,7 +56,7 @@ function RecordsPage() {
   const getTotalWorkTime = () => {
     let totalMinutes = 0
     records.forEach(record => {
-      const workHours = calculateWorkHours(record.startTime, record.endTime)
+      const workHours = calculateWorkHours(record.startTime, record.endTime, record.pauseIntervals)
       if (workHours) {
         totalMinutes += workHours.totalMinutes
       }
@@ -66,10 +66,38 @@ function RecordsPage() {
     return { hours, minutes }
   }
 
-  const formatWorkDuration = (startTime, endTime) => {
-    const workHours = calculateWorkHours(startTime, endTime)
+  const formatWorkDuration = (startTime, endTime, pauseIntervals) => {
+    const workHours = calculateWorkHours(startTime, endTime, pauseIntervals)
     if (!workHours) return '-'
     return `${workHours.hours}시간 ${workHours.minutes}분`
+  }
+
+  const formatPausedTime = (pauseIntervals, endTime) => {
+    if (!pauseIntervals || pauseIntervals.length === 0) return null
+    const workHours = calculateWorkHours('00:00:00', '23:59:59', [])
+    let totalPausedMinutes = 0
+    for (const interval of pauseIntervals) {
+      const [ph, pm, ps] = interval.pauseTime.split(':').map(Number)
+      const pauseMinutes = ph * 60 + pm + (ps || 0) / 60
+      let resumeMinutes
+      if (interval.resumeTime) {
+        const [rh, rm, rs] = interval.resumeTime.split(':').map(Number)
+        resumeMinutes = rh * 60 + rm + (rs || 0) / 60
+      } else if (endTime) {
+        const [eh, em, es] = endTime.split(':').map(Number)
+        resumeMinutes = eh * 60 + em + (es || 0) / 60
+      }
+      if (resumeMinutes !== undefined) {
+        totalPausedMinutes += resumeMinutes - pauseMinutes
+      }
+    }
+    if (totalPausedMinutes <= 0) return null
+    const hours = Math.floor(totalPausedMinutes / 60)
+    const minutes = Math.floor(totalPausedMinutes % 60)
+    if (hours > 0) {
+      return `${hours}시간 ${minutes}분`
+    }
+    return `${minutes}분`
   }
 
   const totalWork = getTotalWorkTime()
@@ -121,7 +149,8 @@ function RecordsPage() {
                 <th>날짜</th>
                 <th>근무 시작</th>
                 <th>근무 종료</th>
-                <th>근무 시간</th>
+                <th>일시중지</th>
+                <th>실근무시간</th>
                 <th>관리</th>
               </tr>
             </thead>
@@ -155,8 +184,11 @@ function RecordsPage() {
                       record.endTime || '-'
                     )}
                   </td>
+                  <td className="pause-cell">
+                    {formatPausedTime(record.pauseIntervals, record.endTime) || '-'}
+                  </td>
                   <td className="duration-cell">
-                    {formatWorkDuration(record.startTime, record.endTime)}
+                    {formatWorkDuration(record.startTime, record.endTime, record.pauseIntervals)}
                   </td>
                   <td className="action-cell">
                     {editingDate === record.date ? (

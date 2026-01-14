@@ -29,7 +29,8 @@ export const getRecords = async () => {
   return data.map(record => ({
     date: record.date,
     startTime: record.start_time,
-    endTime: record.end_time
+    endTime: record.end_time,
+    pauseIntervals: record.pause_intervals || []
   }))
 }
 
@@ -50,7 +51,8 @@ export const getRecordByDate = async (date) => {
   return {
     date: data.date,
     startTime: data.start_time,
-    endTime: data.end_time
+    endTime: data.end_time,
+    pauseIntervals: data.pause_intervals || []
   }
 }
 
@@ -66,6 +68,7 @@ export const saveRecord = async (record) => {
       date: record.date,
       start_time: record.startTime,
       end_time: record.endTime,
+      pause_intervals: record.pauseIntervals || [],
       updated_at: new Date().toISOString()
     }, {
       onConflict: 'employee_id,date'
@@ -103,13 +106,19 @@ export const updateRecord = async (date, updatedData) => {
   const employeeId = await getEmployeeId()
   if (!employeeId) return null
 
+  const updatePayload = {
+    start_time: updatedData.startTime,
+    end_time: updatedData.endTime,
+    updated_at: new Date().toISOString()
+  }
+
+  if (updatedData.pauseIntervals !== undefined) {
+    updatePayload.pause_intervals = updatedData.pauseIntervals
+  }
+
   const { error } = await supabase
     .from('work_records')
-    .update({
-      start_time: updatedData.startTime,
-      end_time: updatedData.endTime,
-      updated_at: new Date().toISOString()
-    })
+    .update(updatePayload)
     .eq('employee_id', employeeId)
     .eq('date', date)
 
@@ -143,38 +152,72 @@ export const getCurrentTimeKST = () => {
   return `${hours}:${minutes}:${seconds}`
 }
 
-// 근무 시간 계산
-export const calculateWorkHours = (startTime, endTime) => {
+// 시간 문자열을 분으로 변환하는 헬퍼 함수
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return null
+  const [h, m, s] = timeStr.split(':').map(Number)
+  return h * 60 + m + (s || 0) / 60
+}
+
+// 일시중지 총 시간 계산 (분 단위)
+export const calculatePausedMinutes = (pauseIntervals, endTime) => {
+  if (!pauseIntervals || pauseIntervals.length === 0) return 0
+
+  let totalPausedMinutes = 0
+  for (const interval of pauseIntervals) {
+    const pauseMinutes = timeToMinutes(interval.pauseTime)
+    // 재개되지 않은 경우 근무 종료 시간까지 계산
+    const resumeMinutes = interval.resumeTime
+      ? timeToMinutes(interval.resumeTime)
+      : (endTime ? timeToMinutes(endTime) : null)
+
+    if (pauseMinutes !== null && resumeMinutes !== null) {
+      totalPausedMinutes += resumeMinutes - pauseMinutes
+    }
+  }
+  return totalPausedMinutes
+}
+
+// 근무 시간 계산 (일시중지 시간 제외)
+export const calculateWorkHours = (startTime, endTime, pauseIntervals = []) => {
   if (!startTime || !endTime) return null
 
-  const [startH, startM, startS] = startTime.split(':').map(Number)
-  const [endH, endM, endS] = endTime.split(':').map(Number)
+  const startMinutes = timeToMinutes(startTime)
+  const endMinutes = timeToMinutes(endTime)
 
-  const startMinutes = startH * 60 + startM + (startS || 0) / 60
-  const endMinutes = endH * 60 + endM + (endS || 0) / 60
+  if (startMinutes === null || endMinutes === null) return null
 
-  const diff = endMinutes - startMinutes
+  const totalDiff = endMinutes - startMinutes
+  if (totalDiff < 0) return null
+
+  // 일시중지 시간 제외
+  const pausedMinutes = calculatePausedMinutes(pauseIntervals, endTime)
+  const diff = totalDiff - pausedMinutes
 
   if (diff < 0) return null
 
   const hours = Math.floor(diff / 60)
   const minutes = Math.floor(diff % 60)
 
-  return { hours, minutes, totalMinutes: diff }
+  return { hours, minutes, totalMinutes: diff, pausedMinutes }
 }
 
 // CSV 내보내기
 export const exportToCSV = (records) => {
-  const headers = ['날짜', '근무 시작', '근무 종료', '총 근무시간']
+  const headers = ['날짜', '근무 시작', '근무 종료', '일시중지 시간', '실제 근무시간']
   const rows = records.map(record => {
-    const workHours = calculateWorkHours(record.startTime, record.endTime)
+    const workHours = calculateWorkHours(record.startTime, record.endTime, record.pauseIntervals)
     const duration = workHours
       ? `${workHours.hours}시간 ${workHours.minutes}분`
+      : '-'
+    const pausedTime = workHours && workHours.pausedMinutes > 0
+      ? `${Math.floor(workHours.pausedMinutes / 60)}시간 ${Math.floor(workHours.pausedMinutes % 60)}분`
       : '-'
     return [
       record.date,
       record.startTime || '-',
       record.endTime || '-',
+      pausedTime,
       duration
     ]
   })

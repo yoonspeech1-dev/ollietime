@@ -133,8 +133,14 @@
   color: var(--gray-700);
 }
 
+.pause-cell {
+  color: var(--warning, #f59e0b);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+}
+
 .duration-cell {
-  color: var(--primary);
+  color: var(--success);
   font-weight: 500;
 }
 
@@ -266,7 +272,7 @@
   }
 
   .records-table {
-    min-width: 600px;
+    min-width: 700px;
   }
 }
 
