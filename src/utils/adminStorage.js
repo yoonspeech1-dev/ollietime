@@ -3,39 +3,53 @@ import { calculateWorkHours, formatDate } from './storage'
 
 // ============ 회원 관리 함수 ============
 
-// 모든 회원 목록 조회 (user_roles + employees 조인)
+// 모든 회원 목록 조회 (user_roles + employees 별도 조회 후 병합)
 export const getAllMembers = async () => {
-  const { data, error } = await supabase
+  // 1. user_roles 조회
+  const { data: roles, error: rolesError } = await supabase
     .from('user_roles')
-    .select(`
-      id,
-      user_id,
-      role,
-      created_at,
-      employees!user_roles_user_id_fkey (
-        id,
-        name,
-        user_id,
-        profile_image_url
-      )
-    `)
+    .select('id, user_id, role, created_at')
     .order('created_at', { ascending: false })
 
-  if (error) {
-    console.error('Error fetching members:', error)
+  if (rolesError) {
+    console.error('Error fetching user roles:', rolesError)
     return []
   }
 
-  // auth.users에서 이메일 정보는 직접 조회 불가하므로 employees 정보만 사용
-  return data.map(member => ({
-    id: member.id,
-    userId: member.user_id,
-    role: member.role,
-    createdAt: member.created_at,
-    employeeId: member.employees?.id,
-    name: member.employees?.name || '이름 없음',
-    profileImageUrl: member.employees?.profile_image_url || null
-  }))
+  if (!roles || roles.length === 0) {
+    return []
+  }
+
+  // 2. employees 조회
+  const { data: employees, error: empError } = await supabase
+    .from('employees')
+    .select('id, user_id, name, profile_image_url')
+
+  if (empError) {
+    console.error('Error fetching employees:', empError)
+  }
+
+  // 3. user_id로 매핑
+  const employeeMap = {}
+  if (employees) {
+    employees.forEach(emp => {
+      employeeMap[emp.user_id] = emp
+    })
+  }
+
+  // 4. 병합하여 반환
+  return roles.map(member => {
+    const emp = employeeMap[member.user_id]
+    return {
+      id: member.id,
+      userId: member.user_id,
+      role: member.role,
+      createdAt: member.created_at,
+      employeeId: emp?.id,
+      name: emp?.name || '이름 없음',
+      profileImageUrl: emp?.profile_image_url || null
+    }
+  })
 }
 
 // 회원 역할 변경
