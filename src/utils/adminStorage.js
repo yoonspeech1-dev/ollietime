@@ -68,20 +68,29 @@ export const updateMemberName = async (userId, newName) => {
   return true
 }
 
-// 회원 삭제 (employees와 user_roles에서 삭제, auth.users는 Supabase Dashboard에서만 가능)
+// 회원 삭제 (work_records, employees, user_roles 순서로 삭제)
 export const deleteMember = async (userId) => {
-  // user_roles 삭제 (CASCADE로 인해 auth.users 삭제 시 자동 삭제되지만, 직접 삭제도 가능)
-  const { error: roleError } = await supabase
-    .from('user_roles')
-    .delete()
+  // 1. 먼저 employee_id 조회
+  const { data: employee } = await supabase
+    .from('employees')
+    .select('id')
     .eq('user_id', userId)
+    .single()
 
-  if (roleError) {
-    console.error('Error deleting user role:', roleError)
-    return false
+  // 2. 해당 직원의 근무 기록 삭제
+  if (employee) {
+    const { error: recordsError } = await supabase
+      .from('work_records')
+      .delete()
+      .eq('employee_id', employee.id)
+
+    if (recordsError) {
+      console.error('Error deleting work records:', recordsError)
+      return false
+    }
   }
 
-  // employees 삭제
+  // 3. employees 삭제
   const { error: empError } = await supabase
     .from('employees')
     .delete()
@@ -89,6 +98,17 @@ export const deleteMember = async (userId) => {
 
   if (empError) {
     console.error('Error deleting employee:', empError)
+    return false
+  }
+
+  // 4. user_roles 삭제
+  const { error: roleError } = await supabase
+    .from('user_roles')
+    .delete()
+    .eq('user_id', userId)
+
+  if (roleError) {
+    console.error('Error deleting user role:', roleError)
     return false
   }
 
