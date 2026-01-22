@@ -20,6 +20,16 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let isMounted = true
 
+    // 타임아웃이 있는 Promise wrapper
+    const withTimeout = (promise, timeoutMs = 5000) => {
+      return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Timeout')), timeoutMs)
+        )
+      ])
+    }
+
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
       if (!isMounted) return
 
@@ -27,16 +37,21 @@ export const AuthProvider = ({ children }) => {
         setUser(session.user)
 
         try {
-          // 사용자 역할 조회
-          const userRole = await getUserRole(session.user.id)
+          // 사용자 역할 조회 (5초 타임아웃)
+          const userRole = await withTimeout(getUserRole(session.user.id))
           if (isMounted) setRole(userRole)
 
-          // employee 정보 조회
-          const employeeData = await getCurrentEmployee(session.user.id)
+          // employee 정보 조회 (5초 타임아웃)
+          const employeeData = await withTimeout(getCurrentEmployee(session.user.id))
           if (isMounted) setEmployee(employeeData)
         } catch (error) {
           if (error.name !== 'AbortError') {
             console.error('Auth state change error:', error)
+          }
+          // 타임아웃이나 에러 시 기본값 설정
+          if (isMounted) {
+            setRole('user')
+            setEmployee(null)
           }
         }
       } else {
