@@ -1,13 +1,29 @@
 import { supabase } from '../lib/supabase'
 
-// 올리의 employee_id 가져오기
+// 현재 로그인한 사용자의 employee_id 가져오기
 const getEmployeeId = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
   const { data } = await supabase
     .from('employees')
     .select('id')
-    .eq('name', '올리')
+    .eq('user_id', user.id)
     .single()
   return data?.id
+}
+
+// 현재 로그인한 사용자의 이름 가져오기
+const getEmployeeName = async () => {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return '사용자'
+
+  const { data } = await supabase
+    .from('employees')
+    .select('name')
+    .eq('user_id', user.id)
+    .single()
+  return data?.name || '사용자'
 }
 
 // 모든 근무 기록 조회
@@ -203,7 +219,9 @@ export const calculateWorkHours = (startTime, endTime, pauseIntervals = []) => {
 }
 
 // CSV 내보내기
-export const exportToCSV = (records) => {
+export const exportToCSV = async (records) => {
+  const employeeName = await getEmployeeName()
+
   const headers = ['날짜', '근무 시작', '근무 종료', '일시중지 시간', '실제 근무시간']
   const rows = records.map(record => {
     const workHours = calculateWorkHours(record.startTime, record.endTime, record.pauseIntervals)
@@ -231,7 +249,7 @@ export const exportToCSV = (records) => {
   const url = URL.createObjectURL(blob)
   const link = document.createElement('a')
   link.href = url
-  link.download = `올리_근무기록_${formatDate(new Date())}.csv`
+  link.download = `${employeeName}_근무기록_${formatDate(new Date())}.csv`
   link.click()
   URL.revokeObjectURL(url)
 }
