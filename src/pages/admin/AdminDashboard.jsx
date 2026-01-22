@@ -51,13 +51,18 @@ function AdminDashboard() {
             전체 직원 {employees.length}명
           </p>
         </div>
-        <button
-          className="export-all-button"
-          onClick={handleExportAll}
-          disabled={exporting || employees.length === 0}
-        >
-          {exporting ? '내보내는 중...' : '전체 기록 내보내기'}
-        </button>
+        <div className="admin-actions">
+          <Link to="/admin/members" className="member-manage-button">
+            회원 관리
+          </Link>
+          <button
+            className="export-all-button"
+            onClick={handleExportAll}
+            disabled={exporting || employees.length === 0}
+          >
+            {exporting ? '내보내는 중...' : '전체 기록 내보내기'}
+          </button>
+        </div>
       </div>
 
       {employees.length === 0 ? (

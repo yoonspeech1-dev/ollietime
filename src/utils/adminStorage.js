@@ -1,6 +1,100 @@
 import { supabase } from '../lib/supabase'
 import { calculateWorkHours, formatDate } from './storage'
 
+// ============ 회원 관리 함수 ============
+
+// 모든 회원 목록 조회 (user_roles + employees 조인)
+export const getAllMembers = async () => {
+  const { data, error } = await supabase
+    .from('user_roles')
+    .select(`
+      id,
+      user_id,
+      role,
+      created_at,
+      employees!user_roles_user_id_fkey (
+        id,
+        name,
+        user_id
+      )
+    `)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('Error fetching members:', error)
+    return []
+  }
+
+  // auth.users에서 이메일 정보는 직접 조회 불가하므로 employees 정보만 사용
+  return data.map(member => ({
+    id: member.id,
+    userId: member.user_id,
+    role: member.role,
+    createdAt: member.created_at,
+    employeeId: member.employees?.id,
+    name: member.employees?.name || '이름 없음'
+  }))
+}
+
+// 회원 역할 변경
+export const updateMemberRole = async (userId, newRole) => {
+  const { error } = await supabase
+    .from('user_roles')
+    .update({ role: newRole })
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error updating member role:', error)
+    return false
+  }
+
+  return true
+}
+
+// 회원 이름 변경
+export const updateMemberName = async (userId, newName) => {
+  const { error } = await supabase
+    .from('employees')
+    .update({ name: newName })
+    .eq('user_id', userId)
+
+  if (error) {
+    console.error('Error updating member name:', error)
+    return false
+  }
+
+  return true
+}
+
+// 회원 삭제 (employees와 user_roles에서 삭제, auth.users는 Supabase Dashboard에서만 가능)
+export const deleteMember = async (userId) => {
+  // user_roles 삭제 (CASCADE로 인해 auth.users 삭제 시 자동 삭제되지만, 직접 삭제도 가능)
+  const { error: roleError } = await supabase
+    .from('user_roles')
+    .delete()
+    .eq('user_id', userId)
+
+  if (roleError) {
+    console.error('Error deleting user role:', roleError)
+    return false
+  }
+
+  // employees 삭제
+  const { error: empError } = await supabase
+    .from('employees')
+    .delete()
+    .eq('user_id', userId)
+
+  if (empError) {
+    console.error('Error deleting employee:', empError)
+    return false
+  }
+
+  return true
+}
+
+// ============ 직원 관리 함수 ============
+
 // 모든 직원 목록 조회
 export const getAllEmployees = async () => {
   const { data, error } = await supabase
