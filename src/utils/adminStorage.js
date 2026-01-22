@@ -15,7 +15,8 @@ export const getAllMembers = async () => {
       employees!user_roles_user_id_fkey (
         id,
         name,
-        user_id
+        user_id,
+        profile_image_url
       )
     `)
     .order('created_at', { ascending: false })
@@ -32,7 +33,8 @@ export const getAllMembers = async () => {
     role: member.role,
     createdAt: member.created_at,
     employeeId: member.employees?.id,
-    name: member.employees?.name || '이름 없음'
+    name: member.employees?.name || '이름 없음',
+    profileImageUrl: member.employees?.profile_image_url || null
   }))
 }
 

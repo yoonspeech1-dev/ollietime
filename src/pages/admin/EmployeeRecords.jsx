@@ -187,8 +187,12 @@ function EmployeeRecords() {
           </Link>
           <div className="header-text">
             <h1 className="page-title">
-              <span className="employee-avatar-small">
-                {employee.name.charAt(0).toUpperCase()}
+              <span className={`employee-avatar-small ${employee.profile_image_url ? 'has-image' : ''}`}>
+                {employee.profile_image_url ? (
+                  <img src={employee.profile_image_url} alt={employee.name} className="avatar-img" />
+                ) : (
+                  employee.name.charAt(0).toUpperCase()
+                )}
               </span>
               {employee.name}
             </h1>

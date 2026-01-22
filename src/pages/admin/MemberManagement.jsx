@@ -133,8 +133,12 @@ function MemberManagement() {
                       </div>
                     ) : (
                       <div className="name-display">
-                        <span className="member-avatar">
-                          {member.name.charAt(0).toUpperCase()}
+                        <span className={`member-avatar ${member.profileImageUrl ? 'has-image' : ''}`}>
+                          {member.profileImageUrl ? (
+                            <img src={member.profileImageUrl} alt={member.name} className="avatar-img" />
+                          ) : (
+                            member.name.charAt(0).toUpperCase()
+                          )}
                         </span>
                         <span className="member-name">{member.name}</span>
                       </div>

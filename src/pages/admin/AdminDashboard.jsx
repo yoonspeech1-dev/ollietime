@@ -77,8 +77,12 @@ function AdminDashboard() {
               to={`/admin/employees/${employee.id}`}
               className="employee-card"
             >
-              <div className="employee-avatar">
-                {employee.name.charAt(0).toUpperCase()}
+              <div className={`employee-avatar ${employee.profile_image_url ? 'has-image' : ''}`}>
+                {employee.profile_image_url ? (
+                  <img src={employee.profile_image_url} alt={employee.name} className="avatar-img" />
+                ) : (
+                  employee.name.charAt(0).toUpperCase()
+                )}
               </div>
               <div className="employee-info">
                 <h3 className="employee-name">{employee.name}</h3>
