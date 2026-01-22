@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { signOut } from '../lib/auth'
 import './Header.css'
@@ -31,6 +31,7 @@ function Header() {
   }
 
   const displayName = employee?.name || user?.user_metadata?.display_name || user?.email?.split('@')[0] || '사용자'
+  const profileImage = employee?.profile_image_url
 
   return (
     <header className="header">
@@ -68,8 +69,12 @@ function Header() {
               className="user-menu-button"
               onClick={() => setShowUserMenu(!showUserMenu)}
             >
-              <span className="user-avatar">
-                {displayName.charAt(0).toUpperCase()}
+              <span className={`user-avatar ${profileImage ? 'has-image' : ''}`}>
+                {profileImage ? (
+                  <img src={profileImage} alt={displayName} className="avatar-img" />
+                ) : (
+                  displayName.charAt(0).toUpperCase()
+                )}
               </span>
               <span className="user-name">{displayName}</span>
               <svg
@@ -91,12 +96,33 @@ function Header() {
             {showUserMenu && (
               <div className="user-dropdown">
                 <div className="user-dropdown-header">
-                  <span className="dropdown-name">{displayName}</span>
-                  <span className="dropdown-email">{user?.email}</span>
-                  {isAdmin && <span className="dropdown-role">관리자</span>}
+                  <span className={`dropdown-avatar ${profileImage ? 'has-image' : ''}`}>
+                    {profileImage ? (
+                      <img src={profileImage} alt={displayName} className="dropdown-avatar-img" />
+                    ) : (
+                      displayName.charAt(0).toUpperCase()
+                    )}
+                  </span>
+                  <div className="dropdown-info">
+                    <span className="dropdown-name">{displayName}</span>
+                    <span className="dropdown-email">{user?.email}</span>
+                    {isAdmin && <span className="dropdown-role">관리자</span>}
+                  </div>
                 </div>
                 <div className="user-dropdown-divider"></div>
+                <Link to="/profile" className="user-dropdown-item" onClick={() => setShowUserMenu(false)}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                    <circle cx="12" cy="7" r="4" />
+                  </svg>
+                  프로필 설정
+                </Link>
                 <button className="user-dropdown-item logout" onClick={handleLogout}>
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <polyline points="16 17 21 12 16 7" />
+                    <line x1="21" y1="12" x2="9" y2="12" />
+                  </svg>
                   로그아웃
                 </button>
               </div>

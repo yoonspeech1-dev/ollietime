@@ -10,6 +10,7 @@ import SignUpPage from './pages/SignUpPage'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import EmployeeRecords from './pages/admin/EmployeeRecords'
 import MemberManagement from './pages/admin/MemberManagement'
+import ProfilePage from './pages/ProfilePage'
 import './App.css'
 
 function AppContent() {
@@ -41,6 +42,19 @@ function AppContent() {
               <Header />
               <main className="main-content">
                 <RecordsPage />
+              </main>
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <div className="app">
+              <Header />
+              <main className="main-content">
+                <ProfilePage />
               </main>
             </div>
           </ProtectedRoute>
