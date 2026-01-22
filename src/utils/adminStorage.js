@@ -214,45 +214,76 @@ export const addEmployeeRecord = async (employeeId, record) => {
   return await getEmployeeRecords(employeeId)
 }
 
-// 모든 직원의 근무 기록 요약 조회
+// 모든 직원의 근무 기록 요약 조회 (최적화: 2번의 쿼리로 처리)
 export const getAllEmployeesWithStats = async () => {
+  // 1. 모든 직원 조회
   const employees = await getAllEmployees()
+  if (employees.length === 0) return []
 
-  const employeesWithStats = await Promise.all(
-    employees.map(async (employee) => {
-      const records = await getEmployeeRecords(employee.id)
+  // 2. 모든 근무 기록을 한 번에 조회
+  const { data: allRecords, error } = await supabase
+    .from('work_records')
+    .select('employee_id, date, start_time, end_time, pause_intervals')
 
-      // 이번 달 근무 시간 계산
-      const now = new Date()
-      const currentMonth = now.getMonth()
-      const currentYear = now.getFullYear()
+  if (error) {
+    console.error('Error fetching all records:', error)
+    return employees.map(emp => ({
+      ...emp,
+      recordCount: 0,
+      thisMonthRecords: 0,
+      thisMonthMinutes: 0
+    }))
+  }
 
-      const thisMonthRecords = records.filter(record => {
-        const recordDate = new Date(record.date)
-        return recordDate.getMonth() === currentMonth &&
-               recordDate.getFullYear() === currentYear
-      })
+  // 이번 달 기준
+  const now = new Date()
+  const currentMonth = now.getMonth()
+  const currentYear = now.getFullYear()
 
-      let totalMinutes = 0
-      thisMonthRecords.forEach(record => {
-        const workHours = calculateWorkHours(
-          record.startTime,
-          record.endTime,
-          record.pauseIntervals
-        )
-        if (workHours) {
-          totalMinutes += workHours.totalMinutes
-        }
-      })
+  // 직원별로 그룹화하여 통계 계산
+  const recordsByEmployee = {}
+  allRecords.forEach(record => {
+    const empId = record.employee_id
+    if (!recordsByEmployee[empId]) {
+      recordsByEmployee[empId] = []
+    }
+    recordsByEmployee[empId].push({
+      date: record.date,
+      startTime: record.start_time,
+      endTime: record.end_time,
+      pauseIntervals: record.pause_intervals || []
+    })
+  })
 
-      return {
-        ...employee,
-        recordCount: records.length,
-        thisMonthRecords: thisMonthRecords.length,
-        thisMonthMinutes: totalMinutes
+  // 각 직원의 통계 계산
+  const employeesWithStats = employees.map(employee => {
+    const records = recordsByEmployee[employee.id] || []
+
+    const thisMonthRecords = records.filter(record => {
+      const recordDate = new Date(record.date)
+      return recordDate.getMonth() === currentMonth &&
+             recordDate.getFullYear() === currentYear
+    })
+
+    let totalMinutes = 0
+    thisMonthRecords.forEach(record => {
+      const workHours = calculateWorkHours(
+        record.startTime,
+        record.endTime,
+        record.pauseIntervals
+      )
+      if (workHours) {
+        totalMinutes += workHours.totalMinutes
       }
     })
-  )
+
+    return {
+      ...employee,
+      recordCount: records.length,
+      thisMonthRecords: thisMonthRecords.length,
+      thisMonthMinutes: totalMinutes
+    }
+  })
 
   return employeesWithStats
 }
