@@ -70,6 +70,31 @@
   font-size: 0.9375rem;
 }
 
+.header-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.add-record-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1rem;
+  border-radius: var(--radius);
+  background: var(--primary);
+  color: var(--white);
+  font-weight: 500;
+  font-size: 0.875rem;
+  white-space: nowrap;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.add-record-btn:hover {
+  background: var(--primary-hover);
+}
+
 .export-btn {
   display: flex;
   align-items: center;
@@ -91,6 +116,74 @@
 }
 
 .export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 새 기록 추가 폼 */
+.add-form-card {
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border: 2px solid var(--primary);
+}
+
+.add-form-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--gray-800);
+  margin-bottom: 1rem;
+}
+
+.add-form-fields {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.form-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--gray-600);
+}
+
+.form-input {
+  padding: 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-family: inherit;
+  color: var(--gray-800);
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.add-form-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.add-form-actions .save-btn,
+.add-form-actions .cancel-btn {
+  padding: 0.625rem 1.25rem;
+  font-size: 0.9375rem;
+}
+
+.add-form-actions .save-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -352,6 +445,12 @@
     gap: 0.75rem;
   }
 
+  .header-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .add-record-btn,
   .export-btn {
     width: 100%;
     justify-content: center;
@@ -373,6 +472,19 @@
 
   .records-table {
     min-width: 700px;
+  }
+
+  .add-form-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .add-form-actions {
+    flex-direction: column;
+  }
+
+  .add-form-actions .save-btn,
+  .add-form-actions .cancel-btn {
+    width: 100%;
   }
 }
 

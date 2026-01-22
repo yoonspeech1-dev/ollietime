@@ -11,6 +11,8 @@ function Calendar() {
   const [records, setRecords] = useState([])
   const [selectedRecord, setSelectedRecord] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [manualMode, setManualMode] = useState(false)
+  const [manualForm, setManualForm] = useState({ startTime: '', endTime: '' })
 
   const loadRecords = useCallback(async () => {
     setLoading(true)
@@ -28,6 +30,8 @@ function Calendar() {
       if (selectedDate) {
         const record = await getRecordByDate(selectedDate)
         setSelectedRecord(record || null)
+        setManualMode(false)
+        setManualForm({ startTime: '', endTime: '' })
       }
     }
     loadSelectedRecord()
@@ -162,6 +166,44 @@ function Calendar() {
   const isWorking = selectedRecord?.startTime && !selectedRecord?.endTime
   const isWorkEnded = selectedRecord?.startTime && selectedRecord?.endTime
 
+  // 선택한 날짜가 오늘인지 확인
+  const isSelectedDateToday = selectedDate === formatDate(new Date())
+
+  // 수동 입력 모드 시작
+  const handleManualMode = () => {
+    setManualMode(true)
+    if (selectedRecord) {
+      setManualForm({
+        startTime: selectedRecord.startTime || '',
+        endTime: selectedRecord.endTime || ''
+      })
+    } else {
+      setManualForm({ startTime: '', endTime: '' })
+    }
+  }
+
+  // 수동 입력 저장
+  const handleSaveManual = async () => {
+    if (!selectedDate || !manualForm.startTime) return
+
+    const updatedRecords = await saveRecord({
+      date: selectedDate,
+      startTime: manualForm.startTime,
+      endTime: manualForm.endTime || null,
+      pauseIntervals: selectedRecord?.pauseIntervals || []
+    })
+    if (updatedRecords) {
+      setRecords(updatedRecords)
+    }
+    setManualMode(false)
+  }
+
+  // 수동 입력 취소
+  const handleCancelManual = () => {
+    setManualMode(false)
+    setManualForm({ startTime: '', endTime: '' })
+  }
+
   const hasRecord = (dateStr) => {
     return records.some(r => r.date === dateStr)
   }
@@ -244,102 +286,157 @@ function Calendar() {
         {selectedDate ? (
           <>
             <h3 className="panel-title">{selectedDate}</h3>
-            <div className="record-info">
-              {selectedRecord ? (
-                <>
-                  <div className="record-item">
-                    <span className="record-label">근무 시작</span>
-                    <span className="record-value">{selectedRecord.startTime || '-'}</span>
+
+            {manualMode ? (
+              /* 수동 입력 모드 */
+              <div className="manual-input-mode">
+                <div className="manual-form">
+                  <div className="form-group">
+                    <label className="form-label">근무 시작</label>
+                    <input
+                      type="time"
+                      step="1"
+                      value={manualForm.startTime}
+                      onChange={(e) => setManualForm({ ...manualForm, startTime: e.target.value })}
+                      className="time-input"
+                    />
                   </div>
-                  <div className="record-item">
-                    <span className="record-label">근무 종료</span>
-                    <span className="record-value">{selectedRecord.endTime || '-'}</span>
+                  <div className="form-group">
+                    <label className="form-label">근무 종료</label>
+                    <input
+                      type="time"
+                      step="1"
+                      value={manualForm.endTime}
+                      onChange={(e) => setManualForm({ ...manualForm, endTime: e.target.value })}
+                      className="time-input"
+                    />
                   </div>
-                  {selectedRecord.pauseIntervals && selectedRecord.pauseIntervals.length > 0 && (
-                    <div className="pause-info">
-                      <span className="record-label">일시중지 기록</span>
-                      <div className="pause-list">
-                        {selectedRecord.pauseIntervals.map((interval, idx) => (
-                          <div key={idx} className="pause-item">
-                            {interval.pauseTime} ~ {interval.resumeTime || '(진행중)'}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {selectedRecord.endTime && (
-                    <div className="record-item work-duration">
-                      <span className="record-label">실제 근무시간</span>
-                      <span className="record-value">
-                        {(() => {
-                          const workHours = calculateWorkHours(
-                            selectedRecord.startTime,
-                            selectedRecord.endTime,
-                            selectedRecord.pauseIntervals
-                          )
-                          return workHours
-                            ? `${workHours.hours}시간 ${workHours.minutes}분`
-                            : '-'
-                        })()}
-                      </span>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="no-record">근무 기록이 없습니다</p>
-              )}
-            </div>
-            {isPaused && (
-              <div className="pause-status">
-                <span className="pause-badge">일시중지 중</span>
+                </div>
+                <div className="manual-actions">
+                  <button className="action-btn save-btn" onClick={handleSaveManual} disabled={!manualForm.startTime}>
+                    저장
+                  </button>
+                  <button className="action-btn cancel-btn" onClick={handleCancelManual}>
+                    취소
+                  </button>
+                </div>
               </div>
-            )}
-            <div className="action-buttons three-buttons">
-              <button
-                className="action-btn start-btn"
-                onClick={handleStartWork}
-                disabled={isWorking || isWorkEnded}
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                  <circle cx="12" cy="12" r="10" />
-                  <polyline points="12 6 12 12 16 14" />
-                </svg>
-                근무 시작
-              </button>
-              <button
-                className={`action-btn pause-btn ${isPaused ? 'resume' : ''}`}
-                onClick={isPaused ? handleResumeWork : handlePauseWork}
-                disabled={!isWorking}
-              >
-                {isPaused ? (
-                  <>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polygon points="5 3 19 12 5 21 5 3" />
-                    </svg>
-                    근무 재개
-                  </>
-                ) : (
-                  <>
-                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                      <rect x="6" y="4" width="4" height="16" />
-                      <rect x="14" y="4" width="4" height="16" />
-                    </svg>
-                    일시중지
-                  </>
+            ) : (
+              /* 일반 모드 */
+              <>
+                <div className="record-info">
+                  {selectedRecord ? (
+                    <>
+                      <div className="record-item">
+                        <span className="record-label">근무 시작</span>
+                        <span className="record-value">{selectedRecord.startTime || '-'}</span>
+                      </div>
+                      <div className="record-item">
+                        <span className="record-label">근무 종료</span>
+                        <span className="record-value">{selectedRecord.endTime || '-'}</span>
+                      </div>
+                      {selectedRecord.pauseIntervals && selectedRecord.pauseIntervals.length > 0 && (
+                        <div className="pause-info">
+                          <span className="record-label">일시중지 기록</span>
+                          <div className="pause-list">
+                            {selectedRecord.pauseIntervals.map((interval, idx) => (
+                              <div key={idx} className="pause-item">
+                                {interval.pauseTime} ~ {interval.resumeTime || '(진행중)'}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {selectedRecord.endTime && (
+                        <div className="record-item work-duration">
+                          <span className="record-label">실제 근무시간</span>
+                          <span className="record-value">
+                            {(() => {
+                              const workHours = calculateWorkHours(
+                                selectedRecord.startTime,
+                                selectedRecord.endTime,
+                                selectedRecord.pauseIntervals
+                              )
+                              return workHours
+                                ? `${workHours.hours}시간 ${workHours.minutes}분`
+                                : '-'
+                            })()}
+                          </span>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <p className="no-record">근무 기록이 없습니다</p>
+                  )}
+                </div>
+                {isPaused && (
+                  <div className="pause-status">
+                    <span className="pause-badge">일시중지 중</span>
+                  </div>
                 )}
-              </button>
-              <button
-                className="action-btn end-btn"
-                onClick={handleEndWork}
-                disabled={!isWorking}
-              >
-                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                  <polyline points="22 4 12 14.01 9 11.01" />
-                </svg>
-                근무 종료
-              </button>
-            </div>
+
+                {/* 오늘 날짜: 실시간 버튼 */}
+                {isSelectedDateToday && (
+                  <div className="action-buttons three-buttons">
+                    <button
+                      className="action-btn start-btn"
+                      onClick={handleStartWork}
+                      disabled={isWorking || isWorkEnded}
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <polyline points="12 6 12 12 16 14" />
+                      </svg>
+                      근무 시작
+                    </button>
+                    <button
+                      className={`action-btn pause-btn ${isPaused ? 'resume' : ''}`}
+                      onClick={isPaused ? handleResumeWork : handlePauseWork}
+                      disabled={!isWorking}
+                    >
+                      {isPaused ? (
+                        <>
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polygon points="5 3 19 12 5 21 5 3" />
+                          </svg>
+                          근무 재개
+                        </>
+                      ) : (
+                        <>
+                          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                            <rect x="6" y="4" width="4" height="16" />
+                            <rect x="14" y="4" width="4" height="16" />
+                          </svg>
+                          일시중지
+                        </>
+                      )}
+                    </button>
+                    <button
+                      className="action-btn end-btn"
+                      onClick={handleEndWork}
+                      disabled={!isWorking}
+                    >
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                      </svg>
+                      근무 종료
+                    </button>
+                  </div>
+                )}
+
+                {/* 수동 입력 버튼 (항상 표시) */}
+                <div className="manual-entry-section">
+                  <button className="action-btn manual-btn" onClick={handleManualMode}>
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                    </svg>
+                    {selectedRecord ? '시간 수정' : '시간 직접 입력'}
+                  </button>
+                </div>
+              </>
+            )}
           </>
         ) : (
           <div className="no-selection">

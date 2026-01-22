@@ -5,6 +5,7 @@ import {
   getEmployeeRecords,
   updateEmployeeRecord,
   deleteEmployeeRecord,
+  addEmployeeRecord,
   exportEmployeeToCSV
 } from '../../utils/adminStorage'
 import { calculateWorkHours } from '../../utils/storage'
@@ -18,6 +19,8 @@ function EmployeeRecords() {
   const [editingDate, setEditingDate] = useState(null)
   const [editForm, setEditForm] = useState({ startTime: '', endTime: '' })
   const [exporting, setExporting] = useState(false)
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [addForm, setAddForm] = useState({ date: '', startTime: '', endTime: '' })
 
   useEffect(() => {
     loadData()
@@ -68,6 +71,32 @@ function EmployeeRecords() {
     setExporting(true)
     await exportEmployeeToCSV(id, employee?.name || '직원')
     setExporting(false)
+  }
+
+  const handleShowAddForm = () => {
+    setShowAddForm(true)
+    setAddForm({ date: '', startTime: '', endTime: '' })
+  }
+
+  const handleAddRecord = async () => {
+    if (!addForm.date || !addForm.startTime) return
+
+    const updated = await addEmployeeRecord(id, {
+      date: addForm.date,
+      startTime: addForm.startTime,
+      endTime: addForm.endTime || null,
+      pauseIntervals: []
+    })
+    if (updated) {
+      setRecords(updated)
+    }
+    setShowAddForm(false)
+    setAddForm({ date: '', startTime: '', endTime: '' })
+  }
+
+  const handleCancelAdd = () => {
+    setShowAddForm(false)
+    setAddForm({ date: '', startTime: '', endTime: '' })
   }
 
   const getTotalWorkTime = () => {
@@ -166,19 +195,73 @@ function EmployeeRecords() {
             <p className="page-description">근무 기록 관리</p>
           </div>
         </div>
-        <button
-          className="export-btn"
-          onClick={handleExportCSV}
-          disabled={records.length === 0 || exporting}
-        >
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="7 10 12 15 17 10" />
-            <line x1="12" y1="15" x2="12" y2="3" />
-          </svg>
-          {exporting ? '내보내는 중...' : 'CSV 내보내기'}
-        </button>
+        <div className="header-actions">
+          <button className="add-record-btn" onClick={handleShowAddForm}>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            기록 추가
+          </button>
+          <button
+            className="export-btn"
+            onClick={handleExportCSV}
+            disabled={records.length === 0 || exporting}
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="7 10 12 15 17 10" />
+              <line x1="12" y1="15" x2="12" y2="3" />
+            </svg>
+            {exporting ? '내보내는 중...' : 'CSV 내보내기'}
+          </button>
+        </div>
       </div>
+
+      {showAddForm && (
+        <div className="add-form-card">
+          <h3 className="add-form-title">새 근무 기록 추가</h3>
+          <div className="add-form-fields">
+            <div className="form-group">
+              <label className="form-label">날짜</label>
+              <input
+                type="date"
+                value={addForm.date}
+                onChange={(e) => setAddForm({ ...addForm, date: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">근무 시작</label>
+              <input
+                type="time"
+                step="1"
+                value={addForm.startTime}
+                onChange={(e) => setAddForm({ ...addForm, startTime: e.target.value })}
+                className="form-input"
+              />
+            </div>
+            <div className="form-group">
+              <label className="form-label">근무 종료</label>
+              <input
+                type="time"
+                step="1"
+                value={addForm.endTime}
+                onChange={(e) => setAddForm({ ...addForm, endTime: e.target.value })}
+                className="form-input"
+              />
+            </div>
+          </div>
+          <div className="add-form-actions">
+            <button className="save-btn" onClick={handleAddRecord} disabled={!addForm.date || !addForm.startTime}>
+              저장
+            </button>
+            <button className="cancel-btn" onClick={handleCancelAdd}>
+              취소
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="summary-card">
         <div className="summary-item">
