@@ -18,26 +18,37 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let isMounted = true
+
     const { data: { subscription } } = onAuthStateChange(async (event, session) => {
+      if (!isMounted) return
+
       if (session?.user) {
         setUser(session.user)
 
-        // 사용자 역할 조회
-        const userRole = await getUserRole(session.user.id)
-        setRole(userRole)
+        try {
+          // 사용자 역할 조회
+          const userRole = await getUserRole(session.user.id)
+          if (isMounted) setRole(userRole)
 
-        // employee 정보 조회
-        const employeeData = await getCurrentEmployee(session.user.id)
-        setEmployee(employeeData)
+          // employee 정보 조회
+          const employeeData = await getCurrentEmployee(session.user.id)
+          if (isMounted) setEmployee(employeeData)
+        } catch (error) {
+          if (error.name !== 'AbortError') {
+            console.error('Auth state change error:', error)
+          }
+        }
       } else {
         setUser(null)
         setRole(null)
         setEmployee(null)
       }
-      setLoading(false)
+      if (isMounted) setLoading(false)
     })
 
     return () => {
+      isMounted = false
       subscription.unsubscribe()
     }
   }, [])
