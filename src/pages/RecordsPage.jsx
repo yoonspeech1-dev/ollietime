@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react'
-import { getRecords, deleteRecord, updateRecord, saveRecord, calculateWorkHours, exportToCSV } from '../utils/storage'
+import { getRecords, deleteRecord, updateRecord, saveRecord, calculateWorkHours, exportToCSV, formatTime } from '../utils/storage'
+import TimeInput from '../components/TimeInput'
 import './RecordsPage.css'
 
 function RecordsPage() {
   const [records, setRecords] = useState([])
   const [editingDate, setEditingDate] = useState(null)
-  const [editForm, setEditForm] = useState({ startTime: '', endTime: '' })
+  const [editForm, setEditForm] = useState({ startTime: '', endTime: '', pauseIntervals: [] })
   const [loading, setLoading] = useState(true)
   const [showAddForm, setShowAddForm] = useState(false)
   const [addForm, setAddForm] = useState({ date: '', startTime: '', endTime: '' })
+  // 일시정지 수정 상태
+  const [editingPauseIndex, setEditingPauseIndex] = useState(null)
+  const [pauseEditForm, setPauseEditForm] = useState({ pauseTime: '', resumeTime: '' })
 
   useEffect(() => {
     loadRecords()
@@ -34,8 +38,11 @@ function RecordsPage() {
     setEditingDate(record.date)
     setEditForm({
       startTime: record.startTime || '',
-      endTime: record.endTime || ''
+      endTime: record.endTime || '',
+      pauseIntervals: record.pauseIntervals || []
     })
+    setEditingPauseIndex(null)
+    setPauseEditForm({ pauseTime: '', resumeTime: '' })
   }
 
   const handleSaveEdit = async () => {
@@ -44,11 +51,66 @@ function RecordsPage() {
       setRecords(updated)
     }
     setEditingDate(null)
+    setEditingPauseIndex(null)
   }
 
   const handleCancelEdit = () => {
     setEditingDate(null)
-    setEditForm({ startTime: '', endTime: '' })
+    setEditForm({ startTime: '', endTime: '', pauseIntervals: [] })
+    setEditingPauseIndex(null)
+    setPauseEditForm({ pauseTime: '', resumeTime: '' })
+  }
+
+  // 일시정지 수정 시작
+  const handleEditPause = (index) => {
+    const interval = editForm.pauseIntervals[index]
+    setEditingPauseIndex(index)
+    setPauseEditForm({
+      pauseTime: interval.pauseTime || '',
+      resumeTime: interval.resumeTime || ''
+    })
+  }
+
+  // 일시정지 수정 저장
+  const handleSavePauseEdit = () => {
+    if (editingPauseIndex === -1) {
+      // 새 일시정지 추가
+      setEditForm({
+        ...editForm,
+        pauseIntervals: [
+          ...editForm.pauseIntervals,
+          { pauseTime: pauseEditForm.pauseTime, resumeTime: pauseEditForm.resumeTime || null }
+        ]
+      })
+    } else {
+      // 기존 일시정지 수정
+      const newPauseIntervals = editForm.pauseIntervals.map((interval, idx) =>
+        idx === editingPauseIndex
+          ? { pauseTime: pauseEditForm.pauseTime, resumeTime: pauseEditForm.resumeTime || null }
+          : interval
+      )
+      setEditForm({ ...editForm, pauseIntervals: newPauseIntervals })
+    }
+    setEditingPauseIndex(null)
+    setPauseEditForm({ pauseTime: '', resumeTime: '' })
+  }
+
+  // 일시정지 수정 취소
+  const handleCancelPauseEdit = () => {
+    setEditingPauseIndex(null)
+    setPauseEditForm({ pauseTime: '', resumeTime: '' })
+  }
+
+  // 일시정지 삭제
+  const handleDeletePause = (index) => {
+    const newPauseIntervals = editForm.pauseIntervals.filter((_, idx) => idx !== index)
+    setEditForm({ ...editForm, pauseIntervals: newPauseIntervals })
+  }
+
+  // 새 일시정지 추가 시작
+  const handleAddNewPause = () => {
+    setEditingPauseIndex(-1) // -1은 새로 추가하는 경우
+    setPauseEditForm({ pauseTime: '', resumeTime: '' })
   }
 
   const handleExportCSV = () => {
@@ -181,9 +243,7 @@ function RecordsPage() {
             </div>
             <div className="form-group">
               <label className="form-label">근무 시작</label>
-              <input
-                type="time"
-                step="1"
+              <TimeInput
                 value={addForm.startTime}
                 onChange={(e) => setAddForm({ ...addForm, startTime: e.target.value })}
                 className="form-input"
@@ -191,9 +251,7 @@ function RecordsPage() {
             </div>
             <div className="form-group">
               <label className="form-label">근무 종료</label>
-              <input
-                type="time"
-                step="1"
+              <TimeInput
                 value={addForm.endTime}
                 onChange={(e) => setAddForm({ ...addForm, endTime: e.target.value })}
                 className="form-input"
@@ -231,6 +289,7 @@ function RecordsPage() {
                 <th>날짜</th>
                 <th>근무 시작</th>
                 <th>근무 종료</th>
+                <th>일시정지 시간</th>
                 <th>일시중지</th>
                 <th>실근무시간</th>
                 <th>관리</th>
@@ -242,28 +301,134 @@ function RecordsPage() {
                   <td className="date-cell">{record.date}</td>
                   <td className="time-cell">
                     {editingDate === record.date ? (
-                      <input
-                        type="time"
-                        step="1"
+                      <TimeInput
                         value={editForm.startTime}
                         onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
                         className="time-input"
                       />
                     ) : (
-                      record.startTime || '-'
+                      formatTime(record.startTime) || '-'
                     )}
                   </td>
                   <td className="time-cell">
                     {editingDate === record.date ? (
-                      <input
-                        type="time"
-                        step="1"
+                      <TimeInput
                         value={editForm.endTime}
                         onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
                         className="time-input"
                       />
                     ) : (
-                      record.endTime || '-'
+                      formatTime(record.endTime) || '-'
+                    )}
+                  </td>
+                  <td className="pause-detail-cell">
+                    {editingDate === record.date ? (
+                      <div className="pause-edit-section">
+                        <div className="pause-edit-list">
+                          {editForm.pauseIntervals.length > 0 ? (
+                            editForm.pauseIntervals.map((interval, idx) => (
+                              <div key={idx} className="pause-edit-item">
+                                {editingPauseIndex === idx ? (
+                                  <div className="pause-inline-form">
+                                    <TimeInput
+                                      value={pauseEditForm.pauseTime}
+                                      onChange={(e) => setPauseEditForm({ ...pauseEditForm, pauseTime: e.target.value })}
+                                      className="time-input-small"
+                                      placeholder="오전 9:00"
+                                    />
+                                    <span>~</span>
+                                    <TimeInput
+                                      value={pauseEditForm.resumeTime}
+                                      onChange={(e) => setPauseEditForm({ ...pauseEditForm, resumeTime: e.target.value })}
+                                      className="time-input-small"
+                                      placeholder="오전 10:00"
+                                    />
+                                    <button className="icon-btn save" onClick={handleSavePauseEdit} disabled={!pauseEditForm.pauseTime}>
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <polyline points="20 6 9 17 4 12" />
+                                      </svg>
+                                    </button>
+                                    <button className="icon-btn cancel" onClick={handleCancelPauseEdit}>
+                                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                        <line x1="18" y1="6" x2="6" y2="18" />
+                                        <line x1="6" y1="6" x2="18" y2="18" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <span className="pause-time-text">
+                                      {formatTime(interval.pauseTime)} ~ {interval.resumeTime ? formatTime(interval.resumeTime) : '(진행중)'}
+                                    </span>
+                                    <div className="pause-item-actions">
+                                      <button className="icon-btn edit" onClick={() => handleEditPause(idx)}>
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+                                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                      </button>
+                                      <button className="icon-btn delete" onClick={() => handleDeletePause(idx)}>
+                                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                                          <polyline points="3 6 5 6 21 6" />
+                                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
+                                      </button>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="no-pause-text">없음</span>
+                          )}
+                        </div>
+                        {editingPauseIndex === -1 ? (
+                          <div className="pause-inline-form add-form">
+                            <TimeInput
+                              value={pauseEditForm.pauseTime}
+                              onChange={(e) => setPauseEditForm({ ...pauseEditForm, pauseTime: e.target.value })}
+                              className="time-input-small"
+                              placeholder="오전 9:00"
+                            />
+                            <span>~</span>
+                            <TimeInput
+                              value={pauseEditForm.resumeTime}
+                              onChange={(e) => setPauseEditForm({ ...pauseEditForm, resumeTime: e.target.value })}
+                              className="time-input-small"
+                              placeholder="오전 10:00"
+                            />
+                            <button className="icon-btn save" onClick={handleSavePauseEdit} disabled={!pauseEditForm.pauseTime}>
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                <polyline points="20 6 9 17 4 12" />
+                              </svg>
+                            </button>
+                            <button className="icon-btn cancel" onClick={handleCancelPauseEdit}>
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
+                          </div>
+                        ) : editingPauseIndex === null && (
+                          <button className="add-pause-btn" onClick={handleAddNewPause}>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2">
+                              <line x1="12" y1="5" x2="12" y2="19" />
+                              <line x1="5" y1="12" x2="19" y2="12" />
+                            </svg>
+                            추가
+                          </button>
+                        )}
+                      </div>
+                    ) : (
+                      record.pauseIntervals && record.pauseIntervals.length > 0 ? (
+                        <div className="pause-intervals-list">
+                          {record.pauseIntervals.map((interval, idx) => (
+                            <div key={idx} className="pause-interval-item">
+                              {formatTime(interval.pauseTime)} ~ {interval.resumeTime ? formatTime(interval.resumeTime) : '(진행중)'}
+                            </div>
+                          ))}
+                        </div>
+                      ) : '-'
                     )}
                   </td>
                   <td className="pause-cell">

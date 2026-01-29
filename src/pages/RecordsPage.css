@@ -223,10 +223,31 @@
   color: var(--gray-700);
 }
 
+.pause-detail-cell {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  min-width: 140px;
+}
+
+.pause-intervals-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pause-interval-item {
+  color: var(--gray-600);
+  padding: 0.25rem 0.5rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+
 .pause-cell {
   color: var(--warning, #f59e0b);
   font-variant-numeric: tabular-nums;
   font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .duration-cell {
@@ -301,6 +322,135 @@
   font-size: 0.875rem;
   width: 100%;
   max-width: 120px;
+}
+
+/* 일시정지 수정 섹션 */
+.pause-edit-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.pause-edit-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pause-edit-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0.5rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+}
+
+.pause-time-text {
+  font-variant-numeric: tabular-nums;
+  color: var(--gray-700);
+}
+
+.pause-item-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.icon-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.icon-btn.edit:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.icon-btn.delete:hover {
+  background: var(--danger);
+  color: var(--white);
+}
+
+.icon-btn.save {
+  background: var(--success);
+  color: var(--white);
+}
+
+.icon-btn.save:hover {
+  background: #059669;
+}
+
+.icon-btn.save:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.icon-btn.cancel {
+  background: var(--gray-300);
+  color: var(--gray-700);
+}
+
+.icon-btn.cancel:hover {
+  background: var(--gray-400);
+}
+
+.pause-inline-form {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.pause-inline-form span {
+  color: var(--gray-500);
+  font-size: 0.75rem;
+}
+
+.pause-inline-form.add-form {
+  margin-top: 0.25rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--gray-200);
+}
+
+.time-input-small {
+  width: 90px;
+  padding: 0.25rem 0.375rem;
+  font-size: 0.75rem;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--radius-sm);
+}
+
+.time-input-small:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.add-pause-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  color: var(--primary);
+  background: transparent;
+  border: 1px dashed var(--primary);
+  border-radius: var(--radius-sm);
+}
+
+.add-pause-btn:hover {
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.no-pause-text {
+  color: var(--gray-400);
+  font-size: 0.8125rem;
 }
 
 .empty-state {

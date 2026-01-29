@@ -154,7 +154,7 @@ export const formatDate = (date) => {
   return `${year}-${month}-${day}`
 }
 
-// 현재 시간 (KST)
+// 현재 시간 (KST) - 시:분 형식
 export const getCurrentTimeKST = () => {
   const now = new Date()
   const kstOffset = 9 * 60
@@ -163,9 +163,18 @@ export const getCurrentTimeKST = () => {
 
   const hours = String(kstTime.getHours()).padStart(2, '0')
   const minutes = String(kstTime.getMinutes()).padStart(2, '0')
-  const seconds = String(kstTime.getSeconds()).padStart(2, '0')
 
-  return `${hours}:${minutes}:${seconds}`
+  return `${hours}:${minutes}`
+}
+
+// 시간 표시용 - HH:MM:SS를 HH:MM으로 변환
+export const formatTime = (timeStr) => {
+  if (!timeStr) return null
+  const parts = timeStr.split(':')
+  if (parts.length >= 2) {
+    return `${parts[0]}:${parts[1]}`
+  }
+  return timeStr
 }
 
 // 시간 문자열을 분으로 변환하는 헬퍼 함수

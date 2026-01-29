@@ -310,9 +310,31 @@
   border-top: 1px solid var(--gray-100);
 }
 
-.pause-info .record-label {
-  display: block;
+.pause-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 0.5rem;
+}
+
+.pause-header .record-label {
+  display: block;
+}
+
+.pause-add-btn {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--gray-100);
+  color: var(--gray-600);
+}
+
+.pause-add-btn:hover {
+  background: var(--primary);
+  color: var(--white);
 }
 
 .pause-list {
@@ -322,12 +344,109 @@
 }
 
 .pause-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.8125rem;
   color: var(--gray-600);
   padding: 0.375rem 0.5rem;
   background: var(--gray-50);
   border-radius: var(--radius-sm);
   font-variant-numeric: tabular-nums;
+}
+
+.pause-time {
+  flex: 1;
+}
+
+.pause-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.pause-item:hover .pause-actions {
+  opacity: 1;
+}
+
+.pause-edit-btn,
+.pause-delete-btn {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  background: var(--gray-200);
+  color: var(--gray-600);
+}
+
+.pause-edit-btn:hover {
+  background: var(--primary);
+  color: var(--white);
+}
+
+.pause-delete-btn:hover {
+  background: var(--danger);
+  color: var(--white);
+}
+
+.no-pause {
+  font-size: 0.8125rem;
+  color: var(--gray-400);
+  text-align: center;
+  padding: 0.5rem;
+}
+
+/* 일시정지 수정 모달 */
+.pause-edit-modal {
+  margin-top: 0.75rem;
+  padding: 1rem;
+  background: var(--gray-50);
+  border-radius: var(--radius);
+  border: 1px solid var(--gray-200);
+}
+
+.pause-edit-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 0.75rem;
+}
+
+.pause-edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.pause-edit-form .form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.pause-edit-form .form-label {
+  font-size: 0.75rem;
+  color: var(--gray-500);
+}
+
+.pause-edit-form .time-input {
+  padding: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.pause-edit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pause-edit-actions .action-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
 }
 
 /* 일시중지 상태 배지 */
@@ -604,6 +723,34 @@
   .pause-item {
     font-size: 0.75rem;
     padding: 0.25rem 0.375rem;
+  }
+
+  .pause-actions {
+    opacity: 1;
+  }
+
+  .pause-edit-btn,
+  .pause-delete-btn {
+    width: 20px;
+    height: 20px;
+  }
+
+  .pause-add-btn {
+    width: 22px;
+    height: 22px;
+  }
+
+  .pause-edit-modal {
+    padding: 0.75rem;
+  }
+
+  .pause-edit-title {
+    font-size: 0.8125rem;
+  }
+
+  .pause-edit-form .time-input {
+    padding: 0.375rem;
+    font-size: 0.8125rem;
   }
 
   .pause-badge {

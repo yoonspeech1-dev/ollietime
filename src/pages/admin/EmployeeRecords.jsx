@@ -8,7 +8,8 @@ import {
   addEmployeeRecord,
   exportEmployeeToCSV
 } from '../../utils/adminStorage'
-import { calculateWorkHours } from '../../utils/storage'
+import { calculateWorkHours, formatTime } from '../../utils/storage'
+import TimeInput from '../../components/TimeInput'
 import './EmployeeRecords.css'
 
 function EmployeeRecords() {
@@ -237,9 +238,7 @@ function EmployeeRecords() {
             </div>
             <div className="form-group">
               <label className="form-label">근무 시작</label>
-              <input
-                type="time"
-                step="1"
+              <TimeInput
                 value={addForm.startTime}
                 onChange={(e) => setAddForm({ ...addForm, startTime: e.target.value })}
                 className="form-input"
@@ -247,9 +246,7 @@ function EmployeeRecords() {
             </div>
             <div className="form-group">
               <label className="form-label">근무 종료</label>
-              <input
-                type="time"
-                step="1"
+              <TimeInput
                 value={addForm.endTime}
                 onChange={(e) => setAddForm({ ...addForm, endTime: e.target.value })}
                 className="form-input"
@@ -298,28 +295,24 @@ function EmployeeRecords() {
                   <td className="date-cell">{record.date}</td>
                   <td className="time-cell">
                     {editingDate === record.date ? (
-                      <input
-                        type="time"
-                        step="1"
+                      <TimeInput
                         value={editForm.startTime}
                         onChange={(e) => setEditForm({ ...editForm, startTime: e.target.value })}
                         className="time-input"
                       />
                     ) : (
-                      record.startTime || '-'
+                      formatTime(record.startTime) || '-'
                     )}
                   </td>
                   <td className="time-cell">
                     {editingDate === record.date ? (
-                      <input
-                        type="time"
-                        step="1"
+                      <TimeInput
                         value={editForm.endTime}
                         onChange={(e) => setEditForm({ ...editForm, endTime: e.target.value })}
                         className="time-input"
                       />
                     ) : (
-                      record.endTime || '-'
+                      formatTime(record.endTime) || '-'
                     )}
                   </td>
                   <td className="pause-cell">
